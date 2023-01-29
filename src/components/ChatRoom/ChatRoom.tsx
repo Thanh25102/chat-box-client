@@ -4,6 +4,8 @@ import IMessage from '../../Interface/IMessage';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import IUser from '../../Interface/IUser';
 import { ACTION_TYPE } from '../../action/action.type';
+import axios from 'axios';
+
 interface IChatRoom {
   sendMessage: (
     type: 'public' | 'private',
@@ -16,7 +18,6 @@ interface IChatRoom {
 }
 const ChatRoom = (props: IChatRoom) => {
   const [chats, setChats] = useState<IMessage[]>([]);
-
   const [message, setMessage] = useState<string>('');
 
   const dispatch = useAppDispatch();
@@ -25,11 +26,24 @@ const ChatRoom = (props: IChatRoom) => {
 
   useEffect(() => {
     if (props.chatType === 'public') {
+      axios.get(process.env.REACT_APP_URL + '/v1/api/users').then((res) => {
+        let users: IUser[] = res.data;
+        const chatPublic2: IMessage[] = [];
+        chatPublic.map((chat) => {
+          users.map((u) => {
+            if (u.name === chat.name) {
+              chatPublic2.push({ ...chat, avatar: u.avatar });
+            }
+          });
+        });
+        setChats(chatPublic2);
+      });
       setChats(chatPublic);
     } else if (props.chatType === 'private') {
       setChats(chatPrivate.get(props.userRecive?.name || '') || []);
     }
   }, [chatPublic, chatPrivate]);
+
   const handleSendMessage = () => {
     if (props.chatType === 'public') {
       props.sendMessage(props.chatType, {
@@ -52,6 +66,7 @@ const ChatRoom = (props: IChatRoom) => {
       });
     }
   };
+
   return (
     <div className="col-md-8 col-xl-6 chat">
       <div className="card">
@@ -59,7 +74,9 @@ const ChatRoom = (props: IChatRoom) => {
           <div className="d-flex bd-highlight">
             <div className="img_cont">
               <img
-                src="https://static.turbosquid.com/Preview/001292/481/WV/_D.jpg"
+                src={require(`../../public/img/${
+                  props.userRecive?.avatar || 'andanh.jpg'
+                }`)}
                 className="rounded-circle user_img"
               />
               <span className="online_icon"></span>
@@ -105,7 +122,10 @@ const ChatRoom = (props: IChatRoom) => {
           {chats.map((chat, index) => (
             <Message
               key={index}
+              user={props.user}
+              userRecive={props.userRecive}
               name={chat.name}
+              avatar={chat.avatar}
               content={chat.content}
               className={props.user?.name === chat.name ? 'end' : 'start'}
             />

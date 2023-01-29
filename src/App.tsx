@@ -9,6 +9,7 @@ import IMessage from './Interface/IMessage';
 import IUser from './Interface/IUser';
 import { useAppDispatch } from './hooks';
 import { ACTION_TYPE } from './action/action.type';
+import axios from 'axios';
 function App() {
   let stompClient = useRef<Client>();
   const [isLogin, setIsLogin] = useState(false);
@@ -19,8 +20,18 @@ function App() {
   const dispatch = useAppDispatch();
 
   const handleLogin = (login: boolean, name: string) => {
-    setIsLogin(login);
-    setUser({ name });
+    axios.get(process.env.REACT_APP_URL + '/v1/api/users').then((res) => {
+      let users: IUser[] = res.data;
+      let checked = false;
+      users.map((u) => {
+        if (name === u.name) {
+          checked = true;
+          setIsLogin(login);
+          setUser(u);
+        }
+      });
+      if (!checked) alert('Username is not exist!');
+    });
   };
 
   useEffect(() => {
@@ -30,7 +41,7 @@ function App() {
   }, [isLogin]);
 
   const connect = () => {
-    var socket = new SockJS('http://localhost:8080/ws');
+    var socket = new SockJS(process.env.REACT_APP_URL + '/ws');
     stompClient.current = over(socket);
     stompClient.current.connect({ username: user?.name }, onConnected, onErr);
   };
@@ -82,17 +93,23 @@ function App() {
     console.log(err + 'gi` z ba');
   };
 
-  const openChatUser = (user: IUser) => {
-    setUserRecive(user);
-    setChatType('private');
+  const openChatUser = (user: IUser | 'common') => {
+    if (user === 'common') {
+      setUserRecive(undefined);
+      setChatType('public');
+    } else {
+      setUserRecive(user);
+      setChatType('private');
+    }
   };
+
   return (
     <div className="App">
       {isLogin || <Login handleLogin={handleLogin} />}
       {isLogin && (
         <div className="container-fluid h-100">
           <div className="row justify-content-center h-100">
-            <NavigationUser onClick={openChatUser} />
+            <NavigationUser user={user} onClick={openChatUser} />
             <ChatRoom
               sendMessage={sendMessage}
               userRecive={userRecive}

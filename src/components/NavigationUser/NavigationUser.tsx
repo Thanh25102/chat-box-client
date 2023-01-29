@@ -4,15 +4,16 @@ import IUser from '../../Interface/IUser';
 import AvailableUser from '../AvaiableUser/AvaiableUser';
 
 interface INavigationUser {
-  onClick: (user: IUser) => void;
+  user: IUser | undefined;
+  onClick: (user: IUser | 'common') => void;
 }
 const NavigationUser = (props: INavigationUser) => {
   const [users, setUsers] = useState<IUser[]>([]);
   useEffect(() => {
-    axios
-      .get('http://localhost:8080/v1/api/users')
-      .then((res) => setUsers(res.data));
-  }, [users]);
+    axios.get(process.env.REACT_APP_URL + '/v1/api/users').then((res) => {
+      setUsers(res.data);
+    });
+  }, []);
 
   return (
     <div className="col-md-4 col-xl-3 chat">
@@ -34,9 +35,18 @@ const NavigationUser = (props: INavigationUser) => {
         </div>
         <div className="card-body contacts_body">
           <ul className="contacts">
-            {users.map((user, index) => (
-              <AvailableUser user={user} key={index} onClick={props.onClick} />
-            ))}
+            <AvailableUser user={'common'} key={-1} onClick={props.onClick} />
+            {users.map((user, index) => {
+              if (user.name !== props.user?.name) {
+                return (
+                  <AvailableUser
+                    user={user}
+                    key={index}
+                    onClick={props.onClick}
+                  />
+                );
+              }
+            })}
           </ul>
         </div>
         <div className="card-footer"></div>
